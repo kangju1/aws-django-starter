@@ -9,30 +9,32 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from colored import fg, attr
 
-import settings
+from settings import GIT_TOKEN, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, EC2_SECURITY_GROUPS,\
+    SSH_KEY_PATH, SSH_EMAIL, DB_HOST, DB_NAME, DB_PASSWORD, DB_USER
+
 
 if __name__ == '__main__':
     service_name = sys.argv[1]
-    os.system(f'git clone git@github.com:windevel/base-server.git ../{service_name}')
-
-    headers = {'Authorization': f'token {settings.GIT_TOKEN}'}
+    headers = {'Authorization': f'token {GIT_TOKEN}'}
     data = {'name': service_name, 'private': True, }
     r = requests.post('https://api.github.com/user/repos', headers=headers, json=data).json()
     http_url = r['clone_url']
     ssh_url = r['ssh_url']
-    owner = r['owner']['login']
-    os.system(f'cd {service_name} && rm -rf .git && git init && git remote add origin {http_url}'
+    username = r['owner']['login']
+
+    os.system(f'git clone git@github.com:windevel/base-server.git ../{service_name}')
+    os.system(f'cd ../{service_name} && rm -rf .git && git init && git remote add origin {ssh_url}'
               ' && git add . && git commit -m "Initial commit" && git push origin master')
 
     ec2 = boto3.resource(
         'ec2',
-        region_name=settings.AWS_REGION,
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        region_name=AWS_REGION,
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
     )
     instance = ec2.create_instances(
-        ImageId=settings.EC2_IMAGE_ID,
-        SecurityGroupIds=settings.EC2_SECURITY_GROUPS,
+        ImageId='ami-0d7fc72c7ce06c6d8',
+        SecurityGroupIds=EC2_SECURITY_GROUPS,
         MaxCount=1,
         MinCount=1,
         TagSpecifications=[
@@ -47,7 +49,7 @@ if __name__ == '__main__':
             },
         ]
     )[0]
-    print('Sever is starting up...')
+    print(fg('light_green_3'), 'Sever is starting up...', attr('reset'))
     while True:
         instance = list(ec2.instances.filter(Filters=[
             {'Name': 'instance-id', 'Values': [instance.instance_id]}
@@ -68,8 +70,8 @@ if __name__ == '__main__':
 
     ssh = paramiko.SSHClient()
     ssh.load_host_keys(os.path.expanduser('~/.ssh/known_hosts'))
-    ssh.connect(server_ip, username='ubuntu', key_filename=os.path.expanduser(settings.SSH_KEY_PATH))
-    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(f'ssh-keygen -t rsa -C "{settings.SSH_EMAIL}" -N "" -f /home/ubuntu/.ssh/id_rsa')
+    ssh.connect(server_ip, username='ubuntu', key_filename=os.path.expanduser(SSH_KEY_PATH))
+    ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(f'ssh-keygen -t rsa -C "{SSH_EMAIL}" -N "" -f /home/ubuntu/.ssh/id_rsa')
     ssh_key = None
     while not ssh_key:
         print('server key scan...')
@@ -78,28 +80,31 @@ if __name__ == '__main__':
         time.sleep(3)
 
     data = {'title': 'server', 'key': ssh_key, 'read_only': True}
-    r = requests.post(f'https://api.github.com/repos/{owner}/{service_name}/keys', headers=headers, json=data)
+    r = requests.post(f'https://api.github.com/repos/{username}/{service_name}/keys', headers=headers, json=data)
     stdin, stdout, stderr = ssh.exec_command('ssh-keyscan github.com')
     git_key = stdout.read().decode(sys.stdout.encoding)
 
     sftp = ssh.open_sftp()
     file_handle = sftp.file('/home/ubuntu/.ssh/known_hosts', mode='a+', bufsize=1)
     file_handle.write(git_key)
-    print('server git clone..')
+
+    print(fg('light_green_3'), 'server git clone..', attr('reset'))
     stdin, stdout, stderr = ssh.exec_command(f'cd /home/ubuntu/service && git clone {ssh_url} .')
+    stdout.read()  # for sync
     file_handle = sftp.file('/home/ubuntu/service/service_settings.py', mode='w', bufsize=1)
-    file_handle.write(f"SERVICE_NAME = '{service_name}'")
+    file_handle.write(f"SERVICE_NAME = '{service_name}'\n")
     file_handle.flush()
 
-    conn = psycopg2.connect(dbname=settings.DB_NAME, user=settings.DB_USER, password=settings.DB_PASSWORD, host=settings.DB_HOST)
+    conn = psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST)
     conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     cur = conn.cursor()
     cur.execute(f'CREATE DATABASE {service_name};')
 
     ssh.exec_command('sudo service supervisor restart')
 
-    print('\n', 'Server IP:', fg('light_green_3'), attr('bold'), server_ip, attr('reset'))
-    print('Admin address:', fg('light_green_3', attr('bold'), f'http://{server_ip}/admin', attr('reset')))
-    print(f'Git ssh url: {ssh_url}')
-    print(f'Git http url: {http_url}')
+    print(fg('light_green'), 'Set. the server is good to go.\n', attr('reset'))
+
+    print(f'{"Server IP:" :20s}', fg('light_green_3'), attr('bold'), server_ip, attr('reset'))
+    print(f'{"Admin address:" :20s}', fg('light_green_3'), attr('bold'), f'http://{server_ip}/admin', attr('reset'))
+    print(f'{"ssh command:" :20s}', fg('light_green_3'), attr('bold'), f'ssh ubuntu@{server_ip} -i {SSH_KEY_PATH}', attr('reset'))
 
