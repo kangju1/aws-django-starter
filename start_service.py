@@ -22,7 +22,7 @@ if __name__ == '__main__':
     ssh_url = r['ssh_url']
     username = r['owner']['login']
 
-    os.system(f'git clone git@github.com:windevel/base-server.git ../{service_name}')
+    os.system(f'git clone git@github.com:kangju1/base-server.git ../{service_name}')
     os.system(f'cd ../{service_name} && rm -rf .git && git init && git remote add origin {ssh_url}'
               ' && git add . && git commit -m "Initial commit" && git push origin master')
 
