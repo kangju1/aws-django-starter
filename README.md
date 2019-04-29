@@ -25,15 +25,3 @@ SSH_KEY_PATH: (string)
 
 SSH_EMAIL: (string)  
   ssh key email for generating one from the ec2 instance
-
-DB_NAME: (string)  
-  database name to create your new service database.
-
-DB_USER: (string)  
-  database user to create your new database
-
-DB_PASSWORD: (string)  
-  password of the user's
-
-DB_HOST: (string)  
-  database host ip or url
