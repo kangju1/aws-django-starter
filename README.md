@@ -3,10 +3,10 @@
 you have to create a setting.py file in which the 'start_service.py' file resides and set the following variables.
 
 AWS_ACCESS_KEY_ID: (string)
-  your aws access key id
+ your aws access key id
 
 AWS_SECRET_ACCESS_KEY: (string)
-  your aws secret access key
+ your aws secret access key
 
 AWS_REGION: (string)
   your desired region for the server to be created
