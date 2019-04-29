@@ -24,7 +24,7 @@ SSH_KEY_PATH: (string)
   your local path of the aws ssh key with which the aws ec2 instance is going to start.
 
 SSH_EMAIL: (string)  
-  ssh key email for generating one from the ec2 server
+  ssh key email for generating one from the ec2 instance
 
 DB_NAME: (string)  
   database name to create your new service database.
