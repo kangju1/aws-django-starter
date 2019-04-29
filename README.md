@@ -1,39 +1,39 @@
 # aws-django-starter
 
-you have to create a setting.py file in which the 'start_service.py' file resides and set the following variables.
-
-AWS_ACCESS_KEY_ID: (string)
+you have to create a setting.py file in which the 'start_service.py' file resides and set the following variables.  
+  
+AWS_ACCESS_KEY_ID: (string)  
   your aws access key id
 
-AWS_SECRET_ACCESS_KEY: (string)
+AWS_SECRET_ACCESS_KEY: (string)  
   your aws secret access key
 
-AWS_REGION: (string)
+AWS_REGION: (string)  
   your desired region for the server to be created
 
-EC2_SECURITY_GROUPS: (list)
+EC2_SECURITY_GROUPS: (list)   
   the security group ids for the server
 
-GIT_TOKEN
+GIT_TOKEN: (string)  
   your personal git token. you can generate one from 'https://github.com/settings/tokens'
 
-SSH_KEY_NAME: (string)
+SSH_KEY_NAME: (string)  
   the aws ssh key pair name with which the aws ec2 instance is going to start.
 
-SSH_KEY_PATH: (string)
+SSH_KEY_PATH: (string)  
   your local path of the aws ssh key with which the aws ec2 instance is going to start.
 
-SSH_EMAIL
-  ssh key email for generating one from the ec2 server
+SSH_EMAIL: (string)  
+  ssh key email for generating one from the ec2 instance
 
-DB_NAME: (string)
+DB_NAME: (string)  
   database name to create your new service database.
 
-DB_USER: (string)
+DB_USER: (string)  
   database user to create your new database
 
-DB_PASSWORD
+DB_PASSWORD: (string)  
   password of the user's
 
-DB_HOST
+DB_HOST: (string)  
   database host ip or url
