@@ -10,7 +10,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from colored import fg, attr
 
 from settings import GIT_TOKEN, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, EC2_SECURITY_GROUPS,\
-    SSH_KEY_PATH, SSH_EMAIL, DB_HOST, DB_NAME, DB_PASSWORD, DB_USER
+    SSH_KEY_PATH, SSH_EMAIL
 
 
 if __name__ == '__main__':
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     username = r['owner']['login']
 
     os.system(f'git clone git@github.com:kangju1/base-server.git ../{service_name}')
-    os.system(f'cd ../{service_name} && rm -rf .git && git init && git remote add origin {ssh_url}'
+    os.system(f'cd ../{service_name} && rm -rf .git && git init && git remote add origin {http_url}'
               ' && git add . && git commit -m "Initial commit" && git push origin master')
 
     ec2 = boto3.resource(
@@ -47,7 +47,7 @@ if __name__ == '__main__':
                     },
                 ]
             },
-        ]
+        ],
     )[0]
     print(fg('light_green_3'), 'Sever is starting up...', attr('reset'))
     while True:
@@ -87,6 +87,7 @@ if __name__ == '__main__':
     sftp = ssh.open_sftp()
     file_handle = sftp.file('/home/ubuntu/.ssh/known_hosts', mode='a+', bufsize=1)
     file_handle.write(git_key)
+    file_handle.flush()
 
     print(fg('light_green_3'), 'server git clone..', attr('reset'))
     stdin, stdout, stderr = ssh.exec_command(f'cd /home/ubuntu/service && git clone {ssh_url} .')
@@ -94,11 +95,6 @@ if __name__ == '__main__':
     file_handle = sftp.file('/home/ubuntu/service/service_settings.py', mode='w', bufsize=1)
     file_handle.write(f"SERVICE_NAME = '{service_name}'\n")
     file_handle.flush()
-
-    conn = psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST)
-    conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    cur = conn.cursor()
-    cur.execute(f'CREATE DATABASE {service_name};')
 
     ssh.exec_command('sudo service supervisor restart')
 
