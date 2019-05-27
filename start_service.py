@@ -16,7 +16,7 @@ from settings import GIT_TOKEN, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS
 if __name__ == '__main__':
     service_name = sys.argv[1]
     headers = {'Authorization': f'token {GIT_TOKEN}'}
-    data = {'name': service_name, 'private': True, }
+    data = {'name': f'{service_name}-server', 'private': True, }
     r = requests.post('https://api.github.com/user/repos', headers=headers, json=data).json()
     http_url = r['clone_url']
     ssh_url = r['ssh_url']
@@ -34,6 +34,7 @@ if __name__ == '__main__':
     )
     instance = ec2.create_instances(
         ImageId='ami-0d7fc72c7ce06c6d8',
+        InstanceType='t1.micro',
         SecurityGroupIds=EC2_SECURITY_GROUPS,
         MaxCount=1,
         MinCount=1,
