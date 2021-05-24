@@ -15,15 +15,20 @@ from settings import GIT_TOKEN, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS
 
 if __name__ == '__main__':
     service_name = sys.argv[1]
+    directory_name = f'{service_name}-server'
     headers = {'Authorization': f'token {GIT_TOKEN}'}
-    data = {'name': f'{service_name}-server', 'private': True, }
+    data = {'name': f'{directory_name}', 'private': True, }
     r = requests.post('https://api.github.com/user/repos', headers=headers, json=data).json()
+    if r.get('errors'):
+        res = requests.get('https://api.github.com/user/repos', headers=headers, json=data).json()
+        r = [repo for repo in res if repo['name'] == directory_name][0]
+    print(r)
     http_url = r['clone_url']
     ssh_url = r['ssh_url']
     username = r['owner']['login']
 
-    os.system(f'git clone git@github.com:kangju1/base-server.git ../{service_name}')
-    os.system(f'cd ../{service_name} && rm -rf .git && git init && git remote add origin {http_url}'
+    os.system(f'git clone git@github.com:kangju1/base-server.git ../{directory_name}')
+    os.system(f'cd ../{directory_name} && rm -rf .git && git init && git remote add origin {ssh_url}'
               ' && git add . && git commit -m "Initial commit" && git push origin master')
 
     ec2 = boto3.resource(
@@ -32,9 +37,12 @@ if __name__ == '__main__':
         aws_access_key_id=AWS_ACCESS_KEY_ID,
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
     )
+    print('5 Seconds until creating EC2')
+    time.sleep(5)
+
     instance = ec2.create_instances(
         ImageId='ami-0d7fc72c7ce06c6d8',
-        InstanceType='t1.micro',
+        InstanceType='t3.micro',
         SecurityGroupIds=EC2_SECURITY_GROUPS,
         MaxCount=1,
         MinCount=1,
@@ -81,7 +89,7 @@ if __name__ == '__main__':
         time.sleep(3)
 
     data = {'title': 'server', 'key': ssh_key, 'read_only': True}
-    r = requests.post(f'https://api.github.com/repos/{username}/{service_name}/keys', headers=headers, json=data)
+    r = requests.post(f'https://api.github.com/repos/{username}/{directory_name}/keys', headers=headers, json=data)
     stdin, stdout, stderr = ssh.exec_command('ssh-keyscan github.com')
     git_key = stdout.read().decode(sys.stdout.encoding)
 
@@ -99,7 +107,7 @@ if __name__ == '__main__':
 
     ssh.exec_command('sudo service supervisor restart')
 
-    print(fg('light_green'), 'Set. the server is good to go.\n', attr('reset'))
+    print(fg('light_green'), 'Set. The server is good to go.\n', attr('reset'))
 
     print(f'{"Server IP:" :20s}', fg('light_green_3'), attr('bold'), server_ip, attr('reset'))
     print(f'{"Admin address:" :20s}', fg('light_green_3'), attr('bold'), f'http://{server_ip}/admin', attr('reset'))
